@@ -255,8 +255,7 @@ Requests the user's age range based on specified age thresholds.
     shared: boolean,
     lowerBound: number | null,
     upperBound: number | null,
-    source: string | null,
-    parentalControls: string[]  // iOS only
+    source: string | null
 }
 ```
 

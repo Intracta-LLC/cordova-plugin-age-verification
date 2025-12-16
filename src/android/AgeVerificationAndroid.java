@@ -10,12 +10,12 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.google.android.play.core.agesignals.AgeSignalsManager;
-import com.google.android.play.core.agesignals.AgeSignalsManagerFactory;
-import com.google.android.play.core.agesignals.AgeSignalsRequest;
-import com.google.android.play.core.agesignals.AgeSignalsResult;
-import com.google.android.play.core.agesignals.AgeSignalsVerificationStatus;
-import com.google.android.play.core.agesignals.AgeSignalsException;
+import com.google.android.play.agesignals.AgeSignalsManager;
+import com.google.android.play.agesignals.AgeSignalsManagerFactory;
+import com.google.android.play.agesignals.AgeSignalsRequest;
+import com.google.android.play.agesignals.AgeSignalsResult;
+import com.google.android.play.agesignals.AgeSignalsException;
+import com.google.android.play.agesignals.model.AgeSignalsVerificationStatus;
 
 /**
  * Android implementation of Age Verification using Google Play Age Signals API
@@ -195,13 +195,13 @@ public class AgeVerificationAndroid extends CordovaPlugin {
 
                             Integer ageLower = result.ageLower();
                             Integer ageUpper = result.ageUpper();
-                            AgeSignalsVerificationStatus status = result.userStatus();
+                            int status = result.userStatus();
 
                             // Always include bounds for consistent response shape
                             response.put("lowerBound", ageLower != null ? ageLower : JSONObject.NULL);
                             response.put("upperBound", ageUpper != null ? ageUpper : JSONObject.NULL);
 
-                            if (status == null || status == AgeSignalsVerificationStatus.UNKNOWN) {
+                            if (status == AgeSignalsVerificationStatus.UNKNOWN) {
                                 response.put("isAboveAge", false);
                                 response.put("declined", false);
                                 response.put("unknown", true);
@@ -302,12 +302,12 @@ public class AgeVerificationAndroid extends CordovaPlugin {
     private JSONObject processAgeSignalsResult(AgeSignalsResult result, int[] ageGates) throws JSONException {
         JSONObject response = new JSONObject();
 
-        AgeSignalsVerificationStatus status = result.userStatus();
+        int status = result.userStatus();
         Integer ageLower = result.ageLower();
         Integer ageUpper = result.ageUpper();
 
         // Map status to cross-platform format
-        if (status == null || status == AgeSignalsVerificationStatus.UNKNOWN) {
+        if (status == AgeSignalsVerificationStatus.UNKNOWN) {
             response.put("status", "unknown");
             response.put("shared", false);
         } else if (status == AgeSignalsVerificationStatus.SUPERVISED_APPROVAL_DENIED) {
@@ -333,29 +333,18 @@ public class AgeVerificationAndroid extends CordovaPlugin {
         response.put("requestedAgeGates", ageGatesJson);
 
         // Map verification status to source-like field
-        if (status != null) {
-            switch (status) {
-                case VERIFIED:
-                    response.put("source", "verified");
-                    response.put("userStatus", "verified");
-                    break;
-                case SUPERVISED:
-                    response.put("source", "supervised");
-                    response.put("userStatus", "supervised");
-                    break;
-                case SUPERVISED_APPROVAL_PENDING:
-                    response.put("source", "supervised");
-                    response.put("userStatus", "supervised_approval_pending");
-                    break;
-                case SUPERVISED_APPROVAL_DENIED:
-                    response.put("source", "supervised");
-                    response.put("userStatus", "supervised_approval_denied");
-                    break;
-                default:
-                    response.put("source", JSONObject.NULL);
-                    response.put("userStatus", "unknown");
-                    break;
-            }
+        if (status == AgeSignalsVerificationStatus.VERIFIED) {
+            response.put("source", "verified");
+            response.put("userStatus", "verified");
+        } else if (status == AgeSignalsVerificationStatus.SUPERVISED) {
+            response.put("source", "supervised");
+            response.put("userStatus", "supervised");
+        } else if (status == AgeSignalsVerificationStatus.SUPERVISED_APPROVAL_PENDING) {
+            response.put("source", "supervised");
+            response.put("userStatus", "supervised_approval_pending");
+        } else if (status == AgeSignalsVerificationStatus.SUPERVISED_APPROVAL_DENIED) {
+            response.put("source", "supervised");
+            response.put("userStatus", "supervised_approval_denied");
         } else {
             response.put("source", JSONObject.NULL);
             response.put("userStatus", "unknown");

@@ -38,20 +38,6 @@
         <!-- Swift source file -->
         <source-file src="src/ios/AgeVerificationIOS.swift" />
 
-        <!-- Bridging header for Swift/Objective-C interop -->
-        <header-file src="src/ios/AgeVerification-Bridging-Header.h" type="BridgingHeader" />
-
-        <!-- Add the DeclaredAgeRange entitlement -->
-        <config-file target="*/Entitlements-Debug.plist" parent="com.apple.developer.declared-age-range">
-            <true />
-        </config-file>
-        <config-file target="*/Entitlements-Release.plist" parent="com.apple.developer.declared-age-range">
-            <true />
-        </config-file>
-
-        <!-- Set deployment target to iOS 26 minimum for DeclaredAgeRange -->
-        <preference name="deployment-target" value="26.0" />
-
         <!-- Framework dependencies - weak link to support older iOS gracefully -->
         <framework src="DeclaredAgeRange" type="system" weak="true" />
     </platform>

@@ -81,7 +81,6 @@ class AgeVerificationIOS: CDVPlugin {
     @available(iOS 26.0, *)
     @MainActor
     private func performAgeRangeRequest(ageGates: [Int], callbackId: String) async {
-        // Capture view controller reference before async operation to avoid race condition
         guard let presentingViewController = self.viewController else {
             let pluginResult = CDVPluginResult(
                 status: CDVCommandStatus_ERROR,
@@ -92,10 +91,8 @@ class AgeVerificationIOS: CDVPlugin {
         }
 
         do {
-            let response: AgeRangeResponse
+            let response: AgeRangeService.Response
 
-            // Call the appropriate overload based on number of age gates
-            // The API expects separate Int parameters, not an array
             switch ageGates.count {
             case 1:
                 response = try await AgeRangeService.shared.requestAgeRange(
@@ -121,30 +118,8 @@ class AgeVerificationIOS: CDVPlugin {
                 return
             }
 
-            // Process the response
             let resultData = self.processAgeRangeResponse(response)
             let pluginResult = CDVPluginResult(status: CDVCommandStatus_OK, messageAs: resultData)
-            self.commandDelegate.send(pluginResult, callbackId: callbackId)
-
-        } catch let error as AgeRangeService.Error {
-            let pluginResult: CDVPluginResult
-            switch error {
-            case .invalidRequest:
-                pluginResult = CDVPluginResult(
-                    status: CDVCommandStatus_ERROR,
-                    messageAs: ["error": "invalid_request", "message": "Invalid age range request. Ensure age ranges have at least 2 years between them."]
-                )
-            case .notAvailable:
-                pluginResult = CDVPluginResult(
-                    status: CDVCommandStatus_ERROR,
-                    messageAs: ["error": "not_available", "message": "Age range service not available on this device configuration."]
-                )
-            @unknown default:
-                pluginResult = CDVPluginResult(
-                    status: CDVCommandStatus_ERROR,
-                    messageAs: ["error": "unknown", "message": "An unknown error occurred: \(error.localizedDescription)"]
-                )
-            }
             self.commandDelegate.send(pluginResult, callbackId: callbackId)
 
         } catch {
@@ -157,7 +132,7 @@ class AgeVerificationIOS: CDVPlugin {
     }
 
     @available(iOS 26.0, *)
-    private func processAgeRangeResponse(_ response: AgeRangeResponse) -> [String: Any] {
+    private func processAgeRangeResponse(_ response: AgeRangeService.Response) -> [String: Any] {
         switch response {
         case .declinedSharing:
             return [
@@ -165,8 +140,7 @@ class AgeVerificationIOS: CDVPlugin {
                 "shared": false,
                 "lowerBound": NSNull(),
                 "upperBound": NSNull(),
-                "source": NSNull(),
-                "parentalControls": [] as [String]
+                "source": NSNull()
             ]
 
         case .sharing(let range):
@@ -175,7 +149,6 @@ class AgeVerificationIOS: CDVPlugin {
                 "shared": true
             ]
 
-            // Add bounds - these are optional Int values
             if let lowerBound = range.lowerBound {
                 resultDict["lowerBound"] = lowerBound
             } else {
@@ -188,32 +161,6 @@ class AgeVerificationIOS: CDVPlugin {
                 resultDict["upperBound"] = NSNull()
             }
 
-            // Add source information
-            switch range.source {
-            case .selfDeclared:
-                resultDict["source"] = "selfDeclared"
-            case .guardianDeclared:
-                resultDict["source"] = "guardianDeclared"
-            @unknown default:
-                resultDict["source"] = "unknown"
-            }
-
-            // Add parental controls if available
-            var parentalControls: [String] = []
-            let activeControls = range.activeParentalControls
-
-            // Check for each possible parental control type
-            if activeControls.contains(.communicationLimits) {
-                parentalControls.append("communicationLimits")
-            }
-            if activeControls.contains(.screenTime) {
-                parentalControls.append("screenTime")
-            }
-            if activeControls.contains(.contentRestrictions) {
-                parentalControls.append("contentRestrictions")
-            }
-            resultDict["parentalControls"] = parentalControls
-
             return resultDict
 
         @unknown default:
@@ -222,8 +169,7 @@ class AgeVerificationIOS: CDVPlugin {
                 "shared": false,
                 "lowerBound": NSNull(),
                 "upperBound": NSNull(),
-                "source": NSNull(),
-                "parentalControls": [] as [String]
+                "source": NSNull()
             ]
         }
     }
@@ -270,7 +216,6 @@ class AgeVerificationIOS: CDVPlugin {
     @available(iOS 26.0, *)
     @MainActor
     private func performAgeCheck(minimumAge: Int, callbackId: String) async {
-        // Capture view controller reference before async operation to avoid race condition
         guard let presentingViewController = self.viewController else {
             let pluginResult = CDVPluginResult(
                 status: CDVCommandStatus_ERROR,
@@ -304,7 +249,6 @@ class AgeVerificationIOS: CDVPlugin {
                     resultDict["isAboveAge"] = lowerBound >= minimumAge
                     resultDict["lowerBound"] = lowerBound
                 } else {
-                    // No lower bound means age is below the first gate
                     resultDict["isAboveAge"] = false
                     resultDict["lowerBound"] = NSNull()
                 }
